@@ -15,7 +15,7 @@ import (
 func SingleHash(in, out chan interface{}) {
 	//пробовала распараллеливать след. образом, изменяя количество воркеров, время выполнения только увеличиватеся
 	//wg := &sync.WaitGroup{}
-	mu := &sync.Mutex{}
+	//mu := &sync.Mutex{}
 	//for i := 0; i < 1; i++ {
 	//	wg.Add(1)
 	//	fmt.Println("SingleHash, распараллеливаем вычесления по воркерам, воркер", i)
@@ -25,13 +25,13 @@ func SingleHash(in, out chan interface{}) {
 		// Содержимое канала в строку
 		data := fmt.Sprint(input)
 		fmt.Println(data, "SingleHash data ", data)
-		mu.Lock()
+		//mu.Lock()
 		sinderCrc := DataSignerCrc32(data)
-		mu.Unlock()
+		//mu.Unlock()
 		singerMd5 := DataSignerMd5(data)
-		mu.Lock()
+		//mu.Lock()
 		singerCrcMd5 := DataSignerCrc32(singerMd5)
-		mu.Unlock()
+		//mu.Unlock()
 		// fmt.Println(data, "SingleHash md5(data)", singerMd5)
 		// fmt.Println(data, "SingleHash crc32(md5(data)", singerCrcMd5)
 		// fmt.Println(data, "SingleHash crc32(data)", sinderCrc)
@@ -60,7 +60,7 @@ func MultiHash(in, out chan interface{}) {
 
 	//пробовала распараллеливать след. образом, изменяя количество воркеров, время выполнения только увеличиватеся
 	//wg := &sync.WaitGroup{}
-	mu := &sync.Mutex{}
+	//mu := &sync.Mutex{}
 	//for i := 0; i < 1; i++ {
 	//	wg.Add(1)
 	//	fmt.Println("MultiHash, распараллеливаем вычесления по воркерам, воркер", i)
@@ -74,9 +74,9 @@ func MultiHash(in, out chan interface{}) {
 
 		tmp := ""
 		for i := 0; i < 6; i++ {
-			mu.Lock()
+			//mu.Lock()
 			tmp = tmp + DataSignerCrc32(fmt.Sprint(i)+data)
-			mu.Unlock()
+			//mu.Unlock()
 		}
 
 		fmt.Println(data, "MultiHash result", tmp)
@@ -127,12 +127,8 @@ func ExecutePipeline(jobs ...job) {
 		chOut = make(chan interface{}, 10)
 
 		go func(currentJob job, chIn, chOut chan interface{}, wg *sync.WaitGroup) {
-			defer func(chOut chan interface{}, wg *sync.WaitGroup) {
-				wg.Done()
-				close(chOut)
-
-			}(chOut, wg)
-
+			defer close(chOut)
+			defer wg.Done()
 			currentJob(chIn, chOut)
 		}(currentJob, chIn, chOut, wg)
 	}
