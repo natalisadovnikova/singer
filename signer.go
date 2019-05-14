@@ -117,14 +117,13 @@ func ExecutePipeline(jobs ...job) {
 	runtime.GOMAXPROCS(0)
 	wg := &sync.WaitGroup{}
 
-	chIn := make(chan interface{}, 5)
 	chOut := make(chan interface{}, 5)
 
 	for _, currentJob := range jobs {
 		wg.Add(1)
 
 		//Входящий поток - это исходящий из предыдущего шага
-		chIn = chOut
+		chIn := chOut
 		chOut = make(chan interface{}, 10)
 
 		go func(currentJob job, chIn, chOut chan interface{}, wg *sync.WaitGroup) {
