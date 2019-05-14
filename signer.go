@@ -13,7 +13,7 @@ import (
 	где data - то что пришло на вход (по сути - числа из первой функции
 */
 func SingleHash(in, out chan interface{}) {
-	//распараллеливаем вычесления по воркерам
+	//пробовала распараллеливать след. образом, изменяя количество воркеров, время выполнения только увеличиватеся
 	//wg := &sync.WaitGroup{}
 	mu := &sync.Mutex{}
 	//for i := 0; i < 1; i++ {
@@ -58,7 +58,7 @@ func SingleHash(in, out chan interface{}) {
 */
 func MultiHash(in, out chan interface{}) {
 
-	//buf := make([]string, 0)
+	//пробовала распараллеливать след. образом, изменяя количество воркеров, время выполнения только увеличиватеся
 	//wg := &sync.WaitGroup{}
 	mu := &sync.Mutex{}
 	//for i := 0; i < 1; i++ {
@@ -100,7 +100,6 @@ func CombineResults(in, out chan interface{}) {
 	for input := range in {
 		data := fmt.Sprint(input)
 		buf = append(buf, data)
-		//runtime.Gosched() // попробуйте закомментировать
 	}
 	sort.Slice(buf, func(i, j int) bool {
 		return buf[i] < buf[j]
@@ -109,7 +108,6 @@ func CombineResults(in, out chan interface{}) {
 
 	fmt.Println("CombineResults result", tmp)
 	out <- tmp
-
 }
 
 /*
