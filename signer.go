@@ -14,34 +14,29 @@ import (
 */
 func SingleHash(in, out chan interface{}) {
 	wg := &sync.WaitGroup{}
-	mu := &sync.Mutex{}
-
 	for i := range in {
-		data := fmt.Sprint(i)
+		input := i
+		data := fmt.Sprint(input)
+		singerMd5 := DataSignerMd5(data)
+
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			// Содержимое канала в строку
-
-			fmt.Println(data, "SingleHash data ", data)
-			mu.Lock()
-			sinderCrc := DataSignerCrc32(data)
-			mu.Unlock()
-			singerMd5 := DataSignerMd5(data)
-			mu.Lock()
-			singerCrcMd5 := DataSignerCrc32(singerMd5)
-			mu.Unlock()
-			singerResult := fmt.Sprintf("%v~%v", sinderCrc, singerCrcMd5)
-
-			fmt.Println(data, "SingleHash result", singerResult)
+			ch1 := make(chan interface{})
+			ch2 := make(chan interface{})
+			go func() {
+				ch1 <- DataSignerCrc32(singerMd5)
+				close(ch1)
+			}()
+			go func() {
+				ch2 <- DataSignerCrc32(data)
+				close(ch2)
+			}()
+			singerResult := fmt.Sprintf("%v~%v", <-ch2, <-ch1)
 			out <- singerResult
 		}()
-
-		//runtime.Gosched() // отдаем право брать задачу другому воркеру
 	}
-
 	wg.Wait()
-
 }
 
 /*
@@ -59,10 +54,38 @@ func MultiHash(in, out chan interface{}) {
 			defer wg.Done()
 
 			tmp := ""
+			ch1 := make(chan map[int]string)
+
 			for i := 0; i < 6; i++ {
-				tmp = tmp + DataSignerCrc32(fmt.Sprint(i)+data)
+				wg.Add(1)
+
+				iter := i
+				go func() {
+					defer wg.Done()
+					ch1 <- map[int]string{iter: DataSignerCrc32(fmt.Sprint(iter) + data)}
+				}()
 			}
-			fmt.Println(data, "MultiHash result", tmp)
+
+			counter := 0
+			m := make(map[int]string)
+			for SignerCrc32Map := range ch1 {
+				counter++
+				for key1, val1 := range SignerCrc32Map {
+					m[key1] = val1
+				}
+				if counter > 5 {
+					close(ch1)
+				}
+			}
+			var keys []int
+			for k := range m {
+				keys = append(keys, k)
+			}
+			sort.Ints(keys)
+			for _, k := range keys {
+				tmp = tmp + m[k]
+			}
+
 			out <- tmp
 		}()
 	}
@@ -74,7 +97,6 @@ func MultiHash(in, out chan interface{}) {
 	объединяет отсортированный результат через _ (символ подчеркивания) в одну строку
 */
 func CombineResults(in, out chan interface{}) {
-	fmt.Println("CombineResults get data")
 	buf := make([]string, 0)
 	for input := range in {
 		data := fmt.Sprint(input)
@@ -84,8 +106,6 @@ func CombineResults(in, out chan interface{}) {
 		return buf[i] < buf[j]
 	})
 	tmp := strings.Join(buf, "_")
-
-	fmt.Println("CombineResults result", tmp)
 	out <- tmp
 }
 
